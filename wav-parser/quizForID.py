@@ -1,4 +1,5 @@
 import math
+import struct
 
 from PIL import Image
 
@@ -10,7 +11,7 @@ songName = "Holy Water".ljust(100)
 date = 6744073709551615
 trackNumber = 2534
 
-img = Image.open("test_files/vc.jpg")
+img = Image.open("test_files/main profile - Copy.jpg")
 width, height = img.size
 
 heightRatio = TARGET_HEIGHT / height
@@ -24,8 +25,8 @@ if width < TARGET_WIDTH:
 
 widthDif = (width - TARGET_WIDTH) / 2
 heightDif = (height - TARGET_HEIGHT) / 2
-img = img.crop((math.floor(widthDif),
-                math.floor(heightDif),
+img = img.crop((math.ceil(widthDif),
+                math.ceil(heightDif),
                 math.ceil(width - widthDif),
                 math.ceil(height - heightDif))
                )
@@ -46,5 +47,27 @@ print(f"{len(imageBits)} bits: {imageBits}")
 
 print(f"{len(performerBits) + len(songNameBits) + len(dateBits) + len(trackNumberBits) + len(imageBits)} total bits")
 
+bitstring = performerBits + songNameBits + dateBits + trackNumberBits + imageBits
+
+b = bytes([int(bitstring[8 * k:8 * k + 8], 2) for k in range(int(len(bitstring) / 8))])
+
+
+def writePreamble(file_object):
+    file_object.write(b"RIFF")                           # ChunkID
+    file_object.write(struct.pack('<L', 96036))          # ChunkSize
+    file_object.write(b"WAVE")                           # Format
+    file_object.write(struct.pack('>L', 0x666d7420))     # Subchunk1ID
+    file_object.write(struct.pack('<L', 0x00000010))     # Subchunk1 Size
+    file_object.write(struct.pack('<L', 0x00010001))     # AudioFormat and NumChannels
+    file_object.write(struct.pack('<L', 0x00003E80))     # Sample Rate
+    file_object.write(struct.pack('<L', 0x00003E80))     # Byte Rate
+    file_object.write(struct.pack('<L', 0x00080001))     # Bits Per Sample and Block Align
+    file_object.write(b"data")                           # Subchunk2ID
+    file_object.write(struct.pack('<L', 960000))         # SubchunkSize
+
+
+with open("test_files/quizzed.wav", "wb") as f:
+    writePreamble(f)
+    f.write(b)
 
 
